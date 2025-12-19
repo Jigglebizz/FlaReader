@@ -1,0 +1,103 @@
+DomDocument
+  o backgroundColor : str
+  o width : int
+  o height : int
+  o frameRate : int
+  o currentTimeline : int
+  o creatorInfo : str [Adobe Animate]
+  o platform : str [Windows|Mac]
+  o versionInfo : str
+  o majorVersion : int
+  o buildNumber : int
+  o viewAngle3D : float
+  o vanishingPoint3DX : float
+  o vanishingPoint3DY : float
+  o rulerUnitType : str [points|pixels|inches|centimeters|millimeters]
+  o nextSceneIdentifier : int
+  o playOptionsPlayLoop : bool
+  o playOptionsPlayPages : bool
+  o playOptionsPlayFrameActions : bool
+  o filetypeGUID : str [DD0DDBBF-5BEF-45B2-9F24-A3048D2A676F]
+  o fileGUID
+  
+  - timelines
+    - DOMTimeline
+      o name : str
+      o layerDepthEnabled : bool
+      
+      - layers
+        - DOMLayer
+          o name : str
+          o color : str
+          o current : bool
+          o isSelected : bool
+          o autoNamed : bool
+          
+          - frames
+            - DOMFrame
+              o index : int
+              o keyMode : int
+              
+              - elements
+                - DOMShape
+                  - fills
+                    - FillStyle
+                      o index : int
+                      - SolidColor
+                        o color : str
+					  - LinearGradient
+					    - GradientEntry
+						  o color
+						  o ratio
+						- Matrix # This defines the scaling, position, and rotation of the gradient
+						   o a
+						   o b
+						   o c
+						   o d
+						   o tx
+						   o ty
+						   
+						   # for a linear gradient, tx and ty is relative to the top left of the canvas
+						   # in my testing, I found that a gradient scaled to 1:1 is exactly 1638.4 points across (wtf??)
+						     # the size of the object seems to be irrelevant, it is global
+							 # this scaling is also irrespective of the canvas size
+							 # this scaling factor is equally as nonsensical in points, pixels, cm, mm, inches, and inches(decimal) modes
+							 # I guess this is relative to some defunct unit that is not longer in use?
+						   # a b c and d are each element of the 2x2 affine matrix respectively
+						   
+                  - strokes
+				    - StrokeStyle
+					  o index : int
+					    - SolidStroke
+						  o scaleMode : str [normal]
+						  o caps : str [none]
+						  o weight : float
+						  o joints : str [miter|bevel|round]
+						  o miterLimit : int
+						  o solidStyle : str [hairline]
+						  - fill
+						    - SolidColor
+							  o color : str
+                  - edges
+                    - Edge
+                      o filleStyle1 : int # reference to FillStyle index
+					  o strokeStyle : int # reference to StrokeStyle index
+                      o edges : str # each edge is defined by coordinate pairs.
+					                # each pair begins with !
+									# each coordinate is separated by:
+									  # | indicates straight
+									  # / indicates cubic curve controls will be specified
+									  # [ indicates an arc, followed by 4 numbers: 
+									# each coordinate is two integers separated by a space. 
+									# They are defined as units * 20 (e.g. unit of 10 in editor = 200 in xml)
+									# from the top left
+					  o cubics : str # defines the control points for a vertex defined by edges
+					                 # begins with !
+									 # states the coordinates of the point it's defining the cubic controls for
+									 # next cubic controls are in (; and );
+									 # i don't understand the number format yet
+									 
+              
+  - scripts
+  - PrinterSettings
+  - publishHistory
