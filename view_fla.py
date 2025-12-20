@@ -2,7 +2,7 @@ import sys
 from enum import Enum
 from PyQt6.QtWidgets import QGraphicsScene, QGraphicsView, QWidget, QVBoxLayout, QHBoxLayout, QComboBox, QLabel, QMainWindow, QScrollArea, QLineEdit, QPushButton
 from PyQt6.QtGui import QBrush, QPen, QColor, QPainter, QPolygonF, QIntValidator
-from PyQt6.QtCore import Qt, QPointF, QLineF, QObject, pyqtSignal, pyqtSlot
+from PyQt6.QtCore import Qt, QPointF, QLineF, QObject, QTimer, pyqtSignal, pyqtSlot
 from flafile import FlaFile, FlaShape, FlaStraightEdge
 
 import pdb
@@ -49,11 +49,14 @@ class FlaTransportModel( QObject ):
     'Paused'
   ])
 
-  def __init__( self, timeline: FlaFile.Timeline ):
+  def __init__( self, frame_rate: int, timeline: FlaFile.Timeline ):
     super().__init__()
-    self.frame_idx = 0
-    self.frame_max = self.getMaxFramesInTimeline( timeline )
-    self.mode      = FlaTransportModel.Mode.Paused
+    self.frame_idx  = 0
+    self.frame_rate = frame_rate
+    self.frame_max  = self.getMaxFramesInTimeline( timeline )
+    self.mode       = FlaTransportModel.Mode.Paused
+    self.timer      = QTimer( self )
+    self.timer.timeout.connect( self.advanceOneFrame )
 
   @pyqtSlot()
   def getMaxFramesInTimeline( self, timeline : FlaFile.Timeline ) -> int :
@@ -64,13 +67,12 @@ class FlaTransportModel( QObject ):
 
   @pyqtSlot()
   def advanceOneFrame( self ) -> None:
-    self.frame_idx = self.frame_max if self.frame_idx == self.frame_max else self.frame_idx + 1
-    self.mode      = FlaTransportModel.Mode.Paused
+    self.frame_idx = 0 if self.frame_idx == self.frame_max else self.frame_idx + 1
     self.frameChanged.emit( self.frame_idx )
 
   @pyqtSlot()
   def goBackOneFrame( self ) -> None:
-    self.frame_idx = 0 if self.frame_idx == 0 else self.frame_idx - 1
+    self.frame_idx = self.frame_max if self.frame_idx == 0 else self.frame_idx - 1
     self.mode      = FlaTransportModel.Mode.Paused
     self.frameChanged.emit( self.frame_idx )
 
@@ -88,11 +90,15 @@ class FlaTransportModel( QObject ):
 
   @pyqtSlot()
   def play( self ) -> None:
-    pass
+    if self.mode != self.Mode.Playing:
+      self.mode = FlaTransportModel.Mode.Playing
+      self.timer.start( int(1000.0 * ( 1.0 / self.frame_rate )) )
 
   @pyqtSlot()
   def pause( self ) -> None:
-    pass
+    if self.mode != self.Mode.Paused:
+      self.mode = FlaTransportModel.Mode.Paused
+      self.timer.stop()
 
   @pyqtSlot()
   def setTimeline( self, timeline: FlaFile.Timeline ):
@@ -162,7 +168,7 @@ class FlaTransportWidget( QWidget ):
 
     rewind_button            : QPushButton = QPushButton('|<')
     back_one_frame_button    : QPushButton = QPushButton( '<<' )
-    play_button              : QPushButton = QPushButton( '>' )
+    self.play_button         : QPushButton = QPushButton( '>' )
     advance_one_frame_button : QPushButton = QPushButton( '>>' )
     last_frame_button        : QPushButton = QPushButton( '>|' )
 
@@ -171,15 +177,24 @@ class FlaTransportWidget( QWidget ):
     self.setLayout( layout )
     layout.addWidget( rewind_button )
     layout.addWidget( back_one_frame_button )
-    layout.addWidget( play_button )
+    layout.addWidget( self.play_button )
     layout.addWidget( advance_one_frame_button )
     layout.addWidget( last_frame_button )
 
     rewind_button.clicked.connect           ( self.transport_model.goToBeginning )
     back_one_frame_button.clicked.connect   ( self.transport_model.goBackOneFrame )
-    play_button.clicked.connect             ( self.transport_model.play )
+    self.play_button.clicked.connect        ( self.playPauseClicked )
     advance_one_frame_button.clicked.connect( self.transport_model.advanceOneFrame )
     last_frame_button.clicked.connect       ( self.transport_model.goToEnd )
+
+  def playPauseClicked( self ):
+    if self.transport_model.mode == FlaTransportModel.Mode.Paused:
+      self.play_button.setText( '||' )
+      self.transport_model.play()
+    elif self.transport_model.mode == FlaTransportModel.Mode.Playing:
+      self.play_button.setText( '>' )
+      self.transport_model.pause()
+
 
 #------------------------------------------------------------------------------
 class QtFlaWindow( QMainWindow ):
@@ -199,7 +214,7 @@ class QtFlaWindow( QMainWindow ):
     for timeline in fla.timelines:
       self.scene_select_combo.addItem( timeline.name )
 
-    self.transport_model : FlaTransportModel = FlaTransportModel( fla.timelines[ 0 ] )
+    self.transport_model : FlaTransportModel = FlaTransportModel( fla.frameRate, fla.timelines[ 0 ] )
 
     self.transport    : FlaTransportWidget   = FlaTransportWidget( self.transport_model )
     self.frame_select : FlaFrameSelectWidget = FlaFrameSelectWidget( 'Frame Select', self.transport_model )
