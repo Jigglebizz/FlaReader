@@ -1,24 +1,9 @@
 import zipfile
 import re
 import xml.etree.ElementTree as ET
+from flaedge import ReadFlaEdges, FlaEdge
 from pathlib import Path
 from typing import List, Tuple
-
-import pdb
-
-#------------------------------------------------------------------------------------------------
-class FlaEdge:
-  def __init__( self, fill_style : int, stroke_style : int ):
-    self.fillStyle1  = fill_style
-    self.strokeStyle = stroke_style
-
-#------------------------------------------------------------------------------------------------
-class FlaStraightEdge(FlaEdge):
-  def __init__( self, fill_style: int, stroke_style : int, point_a : Tuple[ int, int ], point_b : Tuple[ int, int ] ) -> None:
-    super().__init__( fill_style, stroke_style)
-    self.pointA = point_a
-    self.pointB = point_b
-
 
 #------------------------------------------------------------------------------------------------
 class FlaMatrix:
@@ -132,28 +117,7 @@ class FlaShape(FlaElement):
         if stroke.find( f'{{{ns}}}SolidStroke' ) != None:
           self.strokes.append( FlaStrokeStyleSolid( stroke, ns ) )
 
-    self.edges = self.ReadEdges( shape_et, ns )
-
-  def ReadEdges( self, shape_et : ET, ns : str ) -> List[ FlaEdge ]:
-    fla_edges : List[ FlaEdge ] = []
-
-    edges : ET = shape_et.find( f'{{{ns}}}edges' )
-    if edges is not None:
-      for edge in edges.findall( f'{{{ns}}}Edge' ):
-        if 'edges' in edge.attrib: # for now, ignore cubic descriptions
-          fill_style_idx   : int = int(edge.attrib['fillStyle1']) if 'fillStyle1' in edge.attrib else -1
-          stroke_style_idx : int = int(edge.attrib['strokeStyle']) if 'strokeStyle' in edge.attrib else -1
-  
-          edge_descs = edge.attrib['edges'].split('!')
-          edge_descs = [ e for e in edge_descs if len(e) > 0 ]
-          for e in edge_descs:
-            straight_match = re.search( r'(\-?\d+) (\-?\d+)\|(\-?\d+) (\-?\d+)', e )
-            if straight_match is not None:
-              fla_edges.append( FlaStraightEdge( fill_style_idx, stroke_style_idx, \
-                                                ( int( straight_match.group(1) ), int( straight_match.group(2) ) ), \
-                                                ( int( straight_match.group(3) ), int( straight_match.group(4) ) ) \
-                                               ) )
-    return fla_edges
+    self.edges = ReadFlaEdges( shape_et, ns )
 
 #------------------------------------------------------------------------------------------------
 class FlaFile:
@@ -216,7 +180,7 @@ class FlaFile:
       self.path              : Path  = path
       self.backgroundColor   : str   = fla_doc.attrib[ 'backgroundColor' ] if 'backgroundColor' in fla_doc.attrib.keys() else '#ffffff'
       self.width             : int   = int( fla_doc.attrib[ 'width' ] )
-      self.height            : int   = int( fla_doc.attrib[ 'height' ] )
+      self.height            : int   = int( fla_doc.attrib[ 'height' ] ) if 'height' in fla_doc.attrib.keys() else self.width
       self.frameRate         : int   = int( fla_doc.attrib[ 'frameRate' ] )
       self.currentTimeline   : int   = int( fla_doc.attrib[ 'currentTimeline' ] )
       self.creatorInfo       : str   = fla_doc.attrib[ 'creatorInfo' ]
@@ -225,8 +189,8 @@ class FlaFile:
       self.majorVersion      : int   = int( fla_doc.attrib[ 'majorVersion' ] )
       self.buildNumer        : int   = int( fla_doc.attrib[ 'buildNumber' ] )
       self.viewAngle3D       : float = float( fla_doc.attrib[ 'viewAngle3D' ] )
-      self.vanishingPoint3DX : float = float( fla_doc.attrib[ 'vanishingPoint3DX' ] )
-      self.vanishingPoint3DY : float = float( fla_doc.attrib[ 'vanishingPoint3DY' ] )
+      self.vanishingPoint3DX : float = float( fla_doc.attrib[ 'vanishingPoint3DX' ] ) 
+      self.vanishingPoint3DY : float = float( fla_doc.attrib[ 'vanishingPoint3DY' ] ) if 'vanishingPoint3DY' in fla_doc.attrib.keys() else self.vanishingPoint3DX
       self.rulerUnitType     : str   = fla_doc.attrib[ 'rulerUnitType' ] if 'rulerUnitType' in fla_doc.attrib.keys() else 'points'
       self.nextSceneId       : int   = int( fla_doc.attrib[ 'nextSceneIdentifier' ] )
       self.fileTypeGuid      : str   = fla_doc.attrib[ 'filetypeGUID' ]

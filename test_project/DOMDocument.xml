@@ -1,4 +1,4 @@
-<DOMDocument xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://ns.adobe.com/xfl/2008/" backgroundColor="#00FF00" width="1000" height="1080" frameRate="30" currentTimeline="1" xflVersion="23.0" creatorInfo="Adobe Animate" platform="Windows" versionInfo="Saved by Animate Windows 24.0 build 3" majorVersion="24" buildNumber="3" viewAngle3D="86.8503432264464" vanishingPoint3DX="500" vanishingPoint3DY="540" nextSceneIdentifier="3" playOptionsPlayLoop="false" playOptionsPlayPages="false" playOptionsPlayFrameActions="false" filetypeGUID="DD0DDBBF-5BEF-45B2-9F24-A3048D2A676F" fileGUID="647F53461B1D784C9E3F0EEE215CF8EA">
+<DOMDocument xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://ns.adobe.com/xfl/2008/" backgroundColor="#666666" width="400" frameRate="30" currentTimeline="1" xflVersion="23.0" creatorInfo="Adobe Animate" platform="Windows" versionInfo="Saved by Animate Windows 24.0 build 3" majorVersion="24" buildNumber="3" viewAngle3D="41.4727521243985" vanishingPoint3DX="200" nextSceneIdentifier="3" playOptionsPlayLoop="false" playOptionsPlayPages="false" playOptionsPlayFrameActions="false" filetypeGUID="DD0DDBBF-5BEF-45B2-9F24-A3048D2A676F" fileGUID="647F53461B1D784C9E3F0EEE215CF8EA">
      <timelines>
           <DOMTimeline name="Scene 1" layerDepthEnabled="true">
                <layers>
@@ -7,17 +7,6 @@
                               <DOMFrame index="0" keyMode="9728">
                                    <elements>
                                         <DOMShape>
-                                             <fills>
-                                                  <FillStyle index="1">
-                                                       <RadialGradient focalPointRatio="0.0941176470588235">
-                                                            <matrix>
-                                                                 <Matrix a="0.23895263671875" d="0.23895263671875" tx="500" ty="471.2"/>
-                                                            </matrix>
-                                                            <GradientEntry color="#DEADBE" ratio="0"/>
-                                                            <GradientEntry color="#BEAFDE" ratio="1"/>
-                                                       </RadialGradient>
-                                                  </FillStyle>
-                                             </fills>
                                              <strokes>
                                                   <StrokeStyle index="1">
                                                        <SolidStroke scaleMode="normal">
@@ -28,11 +17,9 @@
                                                   </StrokeStyle>
                                              </strokes>
                                              <edges>
-                                                  <Edge fillStyle1="1" strokeStyle="1" edges="!7232 6656|12768 6656!12768 6656|12768 12192!12768 12192|7232 12192!7232 12192|7232 6656"/>
-                                                  <Edge cubics="!7232 12192(;7232,12192 7232,6656 7232,6656q7232 12192 7232 6656);"/>
-                                                  <Edge cubics="!12768 6656(;12768,6656 12768,12192 12768,12192q12768 6656 12768 12192);"/>
-                                                  <Edge cubics="!12768 12192(;12768,12192 7232,12192 7232,12192q12768 12192 7232 12192);"/>
-                                                  <Edge cubics="!7232 6656(;7232,6656 12768,6656 12768,6656q7232 6656 12768 6656);"/>
+                                                  <Edge strokeStyle="1" edges="!2836 1480[2836 1713 3398 1754!3398 1754[3679 1774 3960 1748"/>
+                                                  <Edge cubics="!2836 1480(2836,1108;2836,1852 3960,1748 3960,1748q2836 1480Q2836 1713q3398 1754Q3679 1774q3960 1748)3960,1748;"/>
+                                                  <Edge cubics="!2808 2172(2808,1932;2808,2412 3940,2404 3940,2172q2808 2172Q2808 2257q2985 2306Q3144 2350q3374 2349Q3604 2348q3763 2304Q3940 2254q3940 2172)3940,1940;"/>
                                              </edges>
                                         </DOMShape>
                                    </elements>

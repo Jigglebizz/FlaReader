@@ -1,9 +1,12 @@
 import sys
 from enum import Enum
-from PyQt6.QtWidgets import QGraphicsScene, QGraphicsView, QWidget, QVBoxLayout, QHBoxLayout, QComboBox, QLabel, QMainWindow, QScrollArea, QLineEdit, QPushButton
-from PyQt6.QtGui import QBrush, QPen, QColor, QPainter, QPolygonF, QIntValidator
-from PyQt6.QtCore import Qt, QPointF, QLineF, QObject, QTimer, pyqtSignal, pyqtSlot
-from flafile import FlaFile, FlaShape, FlaStraightEdge
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QComboBox, QLabel, QMainWindow, QScrollArea, QLineEdit, QPushButton
+from PyQt6.QtGui import QBrush, QPen, QColor, QPainter, QIntValidator, QPainterPath, QPainterPathStroker, QLinearGradient, QRadialGradient
+from PyQt6.QtCore import QObject, QTimer, pyqtSignal, pyqtSlot, Qt, QPointF
+from flafile import FlaFile, FlaShape, FlaFillStyle, FlaFillStyleSolidColor, FlaFillStyleLinearGradient, FlaFillStyleRadialGradient
+from flaedge import FlaStraightEdge
+
+from typing import List
 
 import pdb
 
@@ -30,13 +33,37 @@ class FlaSceneWidget( QWidget ):
           if isinstance( element, FlaShape ):
             shape : FlaShape = element
             default_pen = QPen( QColor( '#000000' ), 1.0 )
-            for edge in shape.edges:
-              painter.setPen( default_pen )
 
-              straight_edge : FlaStraightEdge = edge
-              qline : QLineF = QLineF( QPointF(straight_edge.pointA[0] / 20.0, straight_edge.pointA[1] / 20.0), 
-                                       QPointF(straight_edge.pointB[0] / 20.0, straight_edge.pointB[1] / 20.0) )
-              painter.drawLine( qline )
+            if len( shape.fills ) > 0:
+              painter.setBrush( self.MakeBrushForFillStyle( shape.fills[0] ) )
+            else:
+              painter.setBrush( Qt.BrushStyle.NoBrush )
+
+            painter.setPen( default_pen )
+            painter_path = QPainterPath()
+            if len( shape.edges ) > 0:
+               straight_edge : FlaStraightEdge = shape.edges[ 0 ]
+               painter_path.moveTo( straight_edge.pointA[ 0 ] / 20.0, straight_edge.pointA[ 1 ] / 20.0 )
+            for edge in shape.edges:
+              painter_path.lineTo( edge.pointB[ 0 ] / 20.0, edge.pointB[ 1 ] / 20.0 )
+            painter.drawPath( painter_path )
+
+  def MakeBrushForFillStyle( self, fill : FlaFillStyle ) -> QBrush:
+    if isinstance( fill, FlaFillStyleSolidColor ):
+      return QBrush( QColor( fill.color ) )
+    elif isinstance( fill, FlaFillStyleLinearGradient ):
+      return QBrush( QColor( '#ff0000' ) )
+    elif isinstance( fill, FlaFillStyleRadialGradient ):
+      radial_fill : FlaFillStyleRadialGradient = fill
+      center = QPointF( radial_fill.matrix.tx, radial_fill.matrix.ty )
+      radius = radial_fill.matrix.a * 800.0
+      radial_gradient = QRadialGradient( center, radius )#, radial_fill.focalPointRatio )
+
+      for entry in radial_fill.entries:
+        radial_gradient.setColorAt( entry.ratio, QColor( entry.color ) )
+
+      return radial_gradient
+    return Qt.BrushStyle.NoBrush
 
 #------------------------------------------------------------------------------
 class FlaTransportModel( QObject ):
