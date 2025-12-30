@@ -7,21 +7,31 @@ import pdb
 
 #------------------------------------------------------------------------------------------------
 class FlaEdge:
-  def __init__( self, fill_style : int, stroke_style : int ):
+  def __init__( self, fill_style : int, stroke_style : int, point_a : Tuple[ int, int ], point_b : Tuple[ int, int ] ):
     self.fillStyle1  = fill_style
     self.strokeStyle = stroke_style
-
-#------------------------------------------------------------------------------------------------
-class FlaStraightEdge(FlaEdge):
-  def __init__( self, fill_style: int, stroke_style : int, point_a : Tuple[ int, int ], point_b : Tuple[ int, int ] ) -> None:
-    super().__init__( fill_style, stroke_style)
     self.pointA = point_a
     self.pointB = point_b
 
 #------------------------------------------------------------------------------------------------
+class FlaStraightEdge(FlaEdge):
+  def __init__( self, fill_style: int, stroke_style : int, point_a : Tuple[ int, int ], point_b : Tuple[ int, int ] ) -> None:
+    super().__init__( fill_style, stroke_style, point_a, point_b )
+
+#------------------------------------------------------------------------------------------------
 class FlaCubicEdge(FlaEdge):
-  def __init__( self, fill_style: int, stroke_style: int, point_a : Tuple[ int, int ], point_b : Tuple[ int, int ], control_point_a : Tuple[ int, int ], control_point_b : Tuple[ int, int ] ):
-    pass
+  def __init__( self, fill_style: int, stroke_style: int, 
+                      point_a : Tuple[ int, int ], 
+                      point_b : Tuple[ int, int ], 
+                      control_point_a1 : Tuple[ int, int ], 
+                      control_point_a2 : Tuple[ int, int ], 
+                      control_point_b1 : Tuple[ int, int ], 
+                      control_point_b2 : Tuple[ int, int ] ):
+    super().__init__( fill_style, stroke_style, point_a, point_b )
+    self.control_point_a1 = control_point_a1
+    self.control_point_a2 = control_point_a2
+    self.control_point_b1 = control_point_b1
+    self.control_point_b2 = control_point_b2
 
 #------------------------------------------------------------------------------------------------
 class FlaPoint:
@@ -40,7 +50,10 @@ class FlaEdgeDescription:
   ]
   )
 
-  def __init__( self, syntax : str ):
+  def __init__( self, syntax : str, fill_style_idx : int, stroke_style_idx : int ):
+    self.fill_style_idx   = fill_style_idx
+    self.stroke_style_idx = stroke_style_idx
+
     straight_re = r'(\-?\d+) (\-?\d+)\|(\-?\d+) (\-?\d+)'
     curve_re    = r'(\-?\d+) (\-?\d+)\[(\-?\d+) (\-?\d+) (\-?\d+) (\-?\d+)'
 
@@ -119,7 +132,7 @@ class FlaEdgeCubicDescription:
 
         self.replacements : List[ FlaEdgeCubicDescription.Replacement ] = []
         for i_repl in range(0, len(repl_edges) - 1 ):
-          self.replacements.append( repl_edges[ i_repl ], repl_edges[ i_repl + 1 ] )
+          self.replacements.append( FlaEdgeCubicDescription.Replacement( repl_edges[ i_repl ], repl_edges[ i_repl + 1 ] ) )
       else:
         raise Exception( f'Unrecognized cubics description syntax: {cubics_desc}' )
     else:
@@ -133,27 +146,49 @@ def ReadFlaEdges( shape_et : ET, ns : str ) -> List[ FlaEdge ]:
   if edges is not None:
 
     # lookup from edge id to edge description
-    edge_desc_lookup : Dict[ str, FlaEdgeDescription ] = []
-    cubics_descs     : List[ FlaEdgeCubicDescription ] = []
+    edge_descs   : List[ FlaEdgeDescription      ] = []
+    cubics_descs : List[ FlaEdgeCubicDescription ] = []
 
     for edge in edges.findall( f'{{{ns}}}Edge' ):
       if 'edges' in edge.attrib:
-        fill_style_idx   : int = int(edge.attrib['fillStyle1']) if 'fillStyle1' in edge.attrib else -1
+        fill_style_idx   : int = int(edge.attrib['fillStyle1'])  if 'fillStyle1'  in edge.attrib else -1
         stroke_style_idx : int = int(edge.attrib['strokeStyle']) if 'strokeStyle' in edge.attrib else -1
 
         edge_desc_syntaxes = edge.attrib['edges'].split('!')
-        edge_descs = [ FlaEdgeDescription( e ) for e in edge_desc_syntaxes if len(e) > 0 ]
-
-        edge_desc_lookup = { e.id : e for e in edge_descs }
+        edge_descs.extend( [ FlaEdgeDescription( e, fill_style_idx, stroke_style_idx ) for e in edge_desc_syntaxes if len(e) > 0 ] )
       elif 'cubics' in edge.attrib:
         cubics_descs.append( FlaEdgeCubicDescription( edge.attrib[ 'cubics' ] ) )
 
-      # now that we have all the data to create our edges, lets do it
-      
+    # now that we have all the data to create our edges, lets do it
+    while len( edge_descs ) > 0:
+      matching_cubic = None
+      for cubic in cubics_descs:
+        if len( cubic.replacements ) > 0 and len( edge_descs ) >= len( cubic.replacements ):
+          edge_ids   = [ edge.id for edge in edge_descs[ 0 : len(cubic.replacements) ] ]
+          cubics_ids = [ replacement.id for replacement in cubic.replacements ]
+          if edge_ids == cubics_ids:
+            matching_cubic = cubic
+            break
+      if matching_cubic is None:
+        edge_desc = edge_descs[0]
+        if edge_desc.type == FlaEdgeDescription.Type.Straight:
+          fla_edges.append( FlaStraightEdge( edge_desc.fill_style_idx, 
+                                             edge_desc.stroke_style_idx, 
+                                           ( edge_desc.start.x, edge_desc.start.y ),
+                                           ( edge_desc.end.x,   edge_desc.end.y   ) ) )
+          del edge_descs[0]
+        else:
+          raise Exception( f'No cubics found for b-spline edge: { edge_desc.id }' )
+      else:
+        edge_desc = edge_descs[0]
+        edge_descs = edge_descs[ len( cubic.replacements ) : -1 ]
+        fla_edges.append( FlaCubicEdge( edge_desc.fill_style_idx,
+                                        edge_desc.stroke_style_idx,
+                                      ( matching_cubic.start.x, matching_cubic.start.y ),
+                                      ( matching_cubic.end.x,   matching_cubic.end.y   ),
+                                      ( matching_cubic.start_control_point_a.x, matching_cubic.start_control_point_a.y ),
+                                      ( matching_cubic.start_control_point_b.x, matching_cubic.start_control_point_b.y ),
+                                      ( matching_cubic.end_control_point_a.x,   matching_cubic.end_control_point_a.y ),
+                                      ( matching_cubic.end_control_point_b.x,   matching_cubic.end_control_point_b.y ) ) )
 
-  return fla_edges
-  
-def ReadCubics() -> List[ FlaEdge ]:
-  fla_edges : List[ FlaEdge ] = []
-  
   return fla_edges

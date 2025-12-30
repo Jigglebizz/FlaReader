@@ -1,0 +1,60 @@
+<DOMDocument xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://ns.adobe.com/xfl/2008/" width="1280" height="720" frameRate="30" currentTimeline="1" xflVersion="23.0" creatorInfo="Adobe Animate" platform="Windows" versionInfo="Saved by Animate Windows 24.0 build 3" majorVersion="24" buildNumber="3" viewAngle3D="100.925968316201" vanishingPoint3DX="640" vanishingPoint3DY="360" nextSceneIdentifier="2" playOptionsPlayLoop="false" playOptionsPlayPages="false" playOptionsPlayFrameActions="false" filetypeGUID="DD0DDBBF-5BEF-45B2-9F24-A3048D2A676F" fileGUID="89CBFA64CEA96F4AB357FD76D3E6622D">
+     <symbols>
+          <Include href="square.xml" loadImmediate="false" itemID="69521fe2-00000009" lastModified="1766989795"/>
+     </symbols>
+     <timelines>
+          <DOMTimeline name="Scene 1" currentFrame="19" layerDepthEnabled="true">
+               <layers>
+                    <DOMLayer name="Layer_1" color="#00FFFF" current="true" isSelected="true">
+                         <frames>
+                              <DOMFrame index="0" duration="9" tweenType="motion" motionTweenSnap="true" keyMode="22017" easeMethodName="quadIn">
+                                   <tweens>
+                                        <Ease target="all" method="quadIn"/>
+                                   </tweens>
+                                   <elements>
+                                        <DOMSymbolInstance libraryItemName="square" selected="true">
+                                             <matrix>
+                                                  <Matrix tx="421.1" ty="322.1"/>
+                                             </matrix>
+                                             <transformationPoint>
+                                                  <Point y="-55"/>
+                                             </transformationPoint>
+                                        </DOMSymbolInstance>
+                                   </elements>
+                              </DOMFrame>
+                              <DOMFrame index="9" duration="10" tweenType="motion" motionTweenSnap="true" keyMode="22017" easeMethodName="quadOut">
+                                   <tweens>
+                                        <Ease target="all" method="quadOut"/>
+                                   </tweens>
+                                   <elements>
+                                        <DOMSymbolInstance libraryItemName="square" selected="true" centerPoint3DX="421.1" centerPoint3DY="521.15">
+                                             <matrix>
+                                                  <Matrix tx="421.1" ty="576.15"/>
+                                             </matrix>
+                                             <transformationPoint>
+                                                  <Point y="-55"/>
+                                             </transformationPoint>
+                                        </DOMSymbolInstance>
+                                   </elements>
+                              </DOMFrame>
+                              <DOMFrame index="19" keyMode="9728">
+                                   <elements>
+                                        <DOMSymbolInstance libraryItemName="square" centerPoint3DX="421.1" centerPoint3DY="267.1">
+                                             <matrix>
+                                                  <Matrix tx="421.1" ty="322.1"/>
+                                             </matrix>
+                                             <transformationPoint>
+                                                  <Point y="-55"/>
+                                             </transformationPoint>
+                                        </DOMSymbolInstance>
+                                   </elements>
+                              </DOMFrame>
+                         </frames>
+                    </DOMLayer>
+               </layers>
+          </DOMTimeline>
+     </timelines>
+     <scripts/>
+     <PrinterSettings/>
+     <publishHistory/>
+</DOMDocument>

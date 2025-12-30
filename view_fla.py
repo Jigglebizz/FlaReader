@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QComboBox, QLabel
 from PyQt6.QtGui import QBrush, QPen, QColor, QPainter, QIntValidator, QPainterPath, QPainterPathStroker, QLinearGradient, QRadialGradient
 from PyQt6.QtCore import QObject, QTimer, pyqtSignal, pyqtSlot, Qt, QPointF
 from flafile import FlaFile, FlaShape, FlaFillStyle, FlaFillStyleSolidColor, FlaFillStyleLinearGradient, FlaFillStyleRadialGradient
-from flaedge import FlaStraightEdge
+from flaedge import FlaStraightEdge, FlaEdge, FlaCubicEdge
 
 from typing import List
 
@@ -42,10 +42,20 @@ class FlaSceneWidget( QWidget ):
             painter.setPen( default_pen )
             painter_path = QPainterPath()
             if len( shape.edges ) > 0:
-               straight_edge : FlaStraightEdge = shape.edges[ 0 ]
-               painter_path.moveTo( straight_edge.pointA[ 0 ] / 20.0, straight_edge.pointA[ 1 ] / 20.0 )
+               edge : FlaEdge = shape.edges[ 0 ]
+               painter_path.moveTo( edge.pointA[ 0 ] / 20.0, edge.pointA[ 1 ] / 20.0 )
             for edge in shape.edges:
-              painter_path.lineTo( edge.pointB[ 0 ] / 20.0, edge.pointB[ 1 ] / 20.0 )
+              if isinstance( edge, FlaStraightEdge ):
+                painter_path.lineTo( edge.pointB[ 0 ] / 20.0, edge.pointB[ 1 ] / 20.0 )
+              elif isinstance( edge, FlaCubicEdge ):
+                cubic_edge : FlaCubicEdge = edge
+                painter_path.cubicTo( 
+                  QPointF( cubic_edge.control_point_a2[ 0 ] / 20.0, cubic_edge.control_point_a2[ 1 ] / 20.0 ),
+                  QPointF( cubic_edge.control_point_b1[ 0 ] / 20.0, cubic_edge.control_point_b1[ 1 ] / 20.0 ),
+                  QPointF( cubic_edge.pointB[ 0 ] / 20.0, cubic_edge.pointB[ 1 ] / 20.0 )
+                )
+              else:
+                raise Exception( f'Unknown path type to draw: { edge.__class__.__name__ }' )
             painter.drawPath( painter_path )
 
   def MakeBrushForFillStyle( self, fill : FlaFillStyle ) -> QBrush:

@@ -1,6 +1,6 @@
 @echo off
-copy /B /Y test_project.fla test_project.zip
-mkdir test_project
-cd test_project
-"C:\Program Files\7-Zip\7z.exe" x ../test_project.zip -aoa
+copy /B /Y %1.fla %1.zip
+mkdir %1
+cd %1
+"C:\Program Files\7-Zip\7z.exe" x ../%1.zip -aoa
 cd ..
