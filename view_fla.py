@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QComboBox, QLabel
 from PyQt6.QtGui import QBrush, QPen, QColor, QPainter, QIntValidator, QPainterPath, QPainterPathStroker, QLinearGradient, QRadialGradient
 from PyQt6.QtCore import QObject, QTimer, pyqtSignal, pyqtSlot, Qt, QPointF
 from flafile import FlaFile, FlaShape, FlaFillStyle, FlaFillStyleSolidColor, FlaFillStyleLinearGradient, FlaFillStyleRadialGradient
-from flaedge import FlaStraightEdge, FlaEdge, FlaCubicEdge
+from flaedge import FlaStraightEdge, FlaEdge, FlaQuadraticEdge, FlaCubicEdge
 
 from typing import List
 
@@ -47,6 +47,9 @@ class FlaSceneWidget( QWidget ):
             for edge in shape.edges:
               if isinstance( edge, FlaStraightEdge ):
                 painter_path.lineTo( edge.pointB[ 0 ] / 20.0, edge.pointB[ 1 ] / 20.0 )
+              elif isinstance( edge, FlaQuadraticEdge ):
+                painter_path.quadTo( QPointF( edge.control_point[ 0 ] / 20.0 , edge.control_point[ 1 ] / 20.0 ),
+                                     QPointF( edge.pointB[ 0 ] / 20.0 , edge.pointB[ 1 ] / 20.0 ) )
               elif isinstance( edge, FlaCubicEdge ):
                 cubic_edge : FlaCubicEdge = edge
                 painter_path.cubicTo( 
