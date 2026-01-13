@@ -3,7 +3,7 @@ from enum import Enum
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QComboBox, QLabel, QMainWindow, QScrollArea, QLineEdit, QPushButton
 from PyQt6.QtGui import QBrush, QPen, QColor, QPainter, QIntValidator, QPainterPath, QPainterPathStroker, QLinearGradient, QRadialGradient
 from PyQt6.QtCore import QObject, QTimer, pyqtSignal, pyqtSlot, Qt, QPointF
-from flafile import FlaFile, FlaShape, FlaFillStyle, FlaFillStyleSolidColor, FlaFillStyleLinearGradient, FlaFillStyleRadialGradient
+from flafile import FlaFile, FlaShape, FlaFillStyle, FlaFillStyleSolidColor, FlaFillStyleLinearGradient, FlaFillStyleRadialGradient, FlaStrokeStyle, FlaStrokeStyleSolid
 from flaedge import FlaStraightEdge, FlaEdge, FlaQuadraticEdge, FlaCubicEdge
 
 from typing import List
@@ -21,6 +21,7 @@ class FlaSceneWidget( QWidget ):
 
     self.setFixedSize( fla.width, fla.height )
 
+  #------------------------------------------------------------------------------
   def paintEvent( self, evt ) -> None:
     painter : QPainter = QPainter( self )
     painter.setRenderHint( QPainter.RenderHint.Antialiasing )
@@ -29,38 +30,31 @@ class FlaSceneWidget( QWidget ):
     for layer in self.fla.timelines[ self.scene_idx ].layers:
       if len( layer.frames ) > 0:
         frame : FlaFile.Frame = layer.frames[ self.frame_idx ]
-        for element in frame.elements:
-          if isinstance( element, FlaShape ):
-            shape : FlaShape = element
-            default_pen = QPen( QColor( '#000000' ), 1.0 )
+        self.DrawFills( frame )
+        self.DrawStrokes( frame )
 
-            if len( shape.fills ) > 0:
-              painter.setBrush( self.MakeBrushForFillStyle( shape.fills[0] ) )
-            else:
-              painter.setBrush( Qt.BrushStyle.NoBrush )
+  #------------------------------------------------------------------------------
+  def DrawFills( self, frame : FlaFile.Frame ) -> None:
+    painter : QPainter = QPainter( self )
+    painter.setPen( Qt.PenStyle.NoPen )
+    for element in frame.elements:
+      if isinstance( element, FlaShape ):
+        shape : FlaShape = element
 
-            painter.setPen( default_pen )
-            painter_path = QPainterPath()
-            if len( shape.edges ) > 0:
-               edge : FlaEdge = shape.edges[ 0 ]
-               painter_path.moveTo( edge.pointA[ 0 ] / 20.0, edge.pointA[ 1 ] / 20.0 )
-            for edge in shape.edges:
-              if isinstance( edge, FlaStraightEdge ):
-                painter_path.lineTo( edge.pointB[ 0 ] / 20.0, edge.pointB[ 1 ] / 20.0 )
-              elif isinstance( edge, FlaQuadraticEdge ):
-                painter_path.quadTo( QPointF( edge.control_point[ 0 ] / 20.0 , edge.control_point[ 1 ] / 20.0 ),
-                                     QPointF( edge.pointB[ 0 ] / 20.0 , edge.pointB[ 1 ] / 20.0 ) )
-              elif isinstance( edge, FlaCubicEdge ):
-                cubic_edge : FlaCubicEdge = edge
-                painter_path.cubicTo( 
-                  QPointF( cubic_edge.control_point_a2[ 0 ] / 20.0, cubic_edge.control_point_a2[ 1 ] / 20.0 ),
-                  QPointF( cubic_edge.control_point_b1[ 0 ] / 20.0, cubic_edge.control_point_b1[ 1 ] / 20.0 ),
-                  QPointF( cubic_edge.pointB[ 0 ] / 20.0, cubic_edge.pointB[ 1 ] / 20.0 )
-                )
-              else:
-                raise Exception( f'Unknown path type to draw: { edge.__class__.__name__ }' )
-            painter.drawPath( painter_path )
+        if len( shape.fills ) > 0:
+          painter.setBrush( self.MakeBrushForFillStyle( shape.fills[0] ) )
+        else:
+          next
 
+        painter_path = QPainterPath()
+        if len( shape.edges ) > 0:
+            edge : FlaEdge = shape.edges[ 0 ]
+            painter_path.moveTo( edge.pointA[ 0 ] / 20.0, edge.pointA[ 1 ] / 20.0 )
+        for edge in shape.edges:
+          self.DrawEdge( edge, painter_path )
+        painter.drawPath( painter_path )
+
+  #------------------------------------------------------------------------------
   def MakeBrushForFillStyle( self, fill : FlaFillStyle ) -> QBrush:
     if isinstance( fill, FlaFillStyleSolidColor ):
       return QBrush( QColor( fill.color ) )
@@ -77,6 +71,57 @@ class FlaSceneWidget( QWidget ):
 
       return radial_gradient
     return Qt.BrushStyle.NoBrush
+
+  #------------------------------------------------------------------------------
+  def DrawStrokes( self, frame : FlaFile.Frame ) -> None:
+    painter : QPainter = QPainter( self )
+    painter.setBrush( Qt.BrushStyle.NoBrush )
+
+    for element in frame.elements:
+      if isinstance( element, FlaShape ):
+        shape : FlaShape = element
+
+        for edge in shape.edges:
+          painter_path = QPainterPath()
+          painter_path.moveTo( edge.pointA[ 0 ] / 20.0, edge.pointA[ 1 ] / 20.0 )
+
+          if edge.strokeStyle != -1:
+           stroke_style = shape.strokes[ edge.strokeStyle - 1 ]
+           painter.setPen( self.MakePenForStrokeStyle( stroke_style ) )
+          else:
+           painter.setPen( self.MakePenForStrokeStyle( ) )
+
+          self.DrawEdge( edge, painter_path )
+          painter.drawPath( painter_path )
+
+  #------------------------------------------------------------------------------
+  def DrawEdge( self, edge : FlaEdge, painter_path : QPainterPath ) -> None:
+    if isinstance( edge, FlaStraightEdge ):
+      painter_path.lineTo( edge.pointB[ 0 ] / 20.0, edge.pointB[ 1 ] / 20.0 )
+    elif isinstance( edge, FlaQuadraticEdge ):
+      painter_path.quadTo( QPointF( edge.control_point[ 0 ] / 20.0 , edge.control_point[ 1 ] / 20.0 ),
+                            QPointF( edge.pointB[ 0 ] / 20.0 , edge.pointB[ 1 ] / 20.0 ) )
+    elif isinstance( edge, FlaCubicEdge ):
+      cubic_edge : FlaCubicEdge = edge
+      painter_path.cubicTo( 
+        QPointF( cubic_edge.control_point_a2[ 0 ] / 20.0, cubic_edge.control_point_a2[ 1 ] / 20.0 ),
+        QPointF( cubic_edge.control_point_b1[ 0 ] / 20.0, cubic_edge.control_point_b1[ 1 ] / 20.0 ),
+        QPointF( cubic_edge.pointB[ 0 ] / 20.0, cubic_edge.pointB[ 1 ] / 20.0 )
+      )
+    else:
+      raise Exception( f'Unknown path type to draw: { edge.__class__.__name__ }' )
+
+  #------------------------------------------------------------------------------
+  def MakePenForStrokeStyle( self, stroke : FlaStrokeStyle = None) -> QPen:
+    if stroke is not None:
+      if isinstance( stroke, FlaStrokeStyleSolid ):
+        solid_style : FlaStrokeStyleSolid = stroke
+        pen : QPen = QPen()
+        pen.setStyle( Qt.PenStyle.SolidLine )
+        pen.setColor( QColor( stroke.color ) )
+        pen.setWidthF( 1.0 )
+        return pen
+    return Qt.PenStyle.NoPen
 
 #------------------------------------------------------------------------------
 class FlaTransportModel( QObject ):
@@ -280,7 +325,7 @@ class QtFlaWindow( QMainWindow ):
   def sceneIndexChanged( self, value ) -> None:
     self.scene.scene_idx = value
     self.scene.frame_idx = 0
-    self.frame_select.setTimeline( self.fla.timelines[ value ] )
+    self.transport_model.setTimeline( self.fla.timelines[ value ] )
     self.scene.repaint()
 
   def onFrameChanged( self, value ) -> None:

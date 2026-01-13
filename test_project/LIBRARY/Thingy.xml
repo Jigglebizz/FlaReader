@@ -1,0 +1,47 @@
+<DOMSymbolItem xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://ns.adobe.com/xfl/2008/" name="Thingy" itemID="6965c03d-00000006" lastModified="1768276029">
+  <timeline>
+    <DOMTimeline name="Thingy" layerDepthEnabled="true">
+      <layers>
+        <DOMLayer name="Layer_1" color="#00FFFF" current="true" isSelected="true">
+          <frames>
+            <DOMFrame index="0" keyMode="9728">
+              <elements>
+                <DOMShape>
+                  <fills>
+                    <FillStyle index="1">
+                      <RadialGradient>
+                        <matrix>
+                          <Matrix a="0.10894775390625" d="0.10894775390625" tx="69.9" ty="55.5"/>
+                        </matrix>
+                        <GradientEntry color="#00FF00" ratio="0"/>
+                        <GradientEntry ratio="1"/>
+                      </RadialGradient>
+                    </FillStyle>
+                  </fills>
+                  <strokes>
+                    <StrokeStyle index="1">
+                      <SolidStroke scaleMode="normal">
+                        <fill>
+                          <SolidColor/>
+                        </fill>
+                      </SolidStroke>
+                    </StrokeStyle>
+                  </strokes>
+                  <edges>
+                    <Edge fillStyle1="1" strokeStyle="1" edges="!0 2220S6|0 0!0 0[85 88 369 111!369 111[566 126 580 128!580 128[690 141 740 170!740 170[974 305 1123 361!1123 361[1306 429 1462 421!1462 421[1789 404 2220 0!2220 0[3372 1220 2220 2220"/>
+                    <Edge fillStyle1="1" edges="!2220 2220S2[1074 725 0 2220"/>
+                    <Edge cubics="!2220 0(;2988,813 2988,1553 2220,2220q2220 0Q3372 1220q2220 2220);"/>
+                    <Edge cubics="!0 2220(;0,2220 0,0 0,0q0 2220 0 0);"/>
+                    <Edge cubics="!0 0(;152,158 585,80 740,170q0 0Q85 88q369 111Q566 126q580 128Q690 141q740 170);"/>
+                    <Edge cubics="!740 170(;1302,494 1610,572 2220,0q740 170Q974 305q1123 361Q1306 429q1462 421Q1789 404q2220 0);"/>
+                    <Edge cubics="!2220 2220(;1456,1223 716,1223 0,2220q2220 2220Q1074 725q0 2220);"/>
+                  </edges>
+                </DOMShape>
+              </elements>
+            </DOMFrame>
+          </frames>
+        </DOMLayer>
+      </layers>
+    </DOMTimeline>
+  </timeline>
+</DOMSymbolItem>

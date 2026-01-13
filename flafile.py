@@ -5,6 +5,8 @@ from flaedge import ReadFlaEdges, FlaEdge
 from pathlib import Path
 from typing import List, Tuple
 
+import pdb
+
 #------------------------------------------------------------------------------------------------
 class FlaMatrix:
   def __init__( self, mat_et : ET = None ) -> None:
@@ -31,7 +33,7 @@ class FlaFillStyleSolidColor( FlaFillStyle ):
 class FlaFillStyleGradient( FlaFillStyle ):
   class Entry:
     def __init__( self, entry_et : ET ) -> None:
-      self.color = entry_et.attrib[ 'color' ]
+      self.color = entry_et.attrib[ 'color' ] if 'color' in entry_et.attrib else '#000000'
       self.ratio = float(entry_et.attrib[ 'ratio' ] )
 
   def __init__( self, fill_et : ET, ns : str ) -> None:
@@ -83,10 +85,11 @@ class FlaStrokeStyleSolid(FlaStrokeStyle):
     self.joints     : str = solid_stroke.attrib[ 'joints' ] if 'joints' in solid_stroke.attrib else 'miter'
     self.miterLimit : int = int( solid_stroke.attrib[ 'miterLimit' ] ) if 'miterLimit' in solid_stroke.attrib else 3
 
-    fill = stroke_et.find( f'{{{ns}}}fill' )
+    fill = solid_stroke.find( f'{{{ns}}}fill' )
     if fill is not None:
-      if fill.find( f'{{{ns}}}SolidColor' ) != None:
-        self.fill = FlaFillStyleSolidColor( fill, ns, default_color='#000000' )
+      solid_color = fill.find( f'{{{ns}}}SolidColor' )
+      if solid_color is not None:
+        self.color : str = solid_color.attrib[ 'color' ] if 'color' in solid_color.attrib else '#000000'
 
 #------------------------------------------------------------------------------------------------
 class FlaElement:
@@ -174,7 +177,7 @@ class FlaFile:
       fla_doc = ET.fromstring( dom_doc_str )
 
       root_tag = fla_doc.tag
-      m = re.search( '\{(.*)\}DOMDocument', root_tag )
+      m = re.search( r'\{(.*)\}DOMDocument', root_tag )
       ns = m.group(1)
 
       self.path              : Path  = path
