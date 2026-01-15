@@ -45,7 +45,7 @@ class FlaQuadraticEdge(FlaEdge):
 #------------------------------------------------------------------------------------------------
 class FlaPoint:
   def __init__( self, x : str, y : str ):
-    int_regex      = r'^(\-?\d+)(S\d+)?$'
+    int_regex      = r'^(\-?\d+(\.\d+)?)(S\d+)?$'
     fixed_pt_regex = r'^#([0-9A-F]+)\.([0-9A-F]+)$'
 
     int_match_x   = re.search( int_regex, x )
@@ -54,14 +54,14 @@ class FlaPoint:
     fixed_match_y = re.search( fixed_pt_regex, y )
 
     if int_match_x is not None:
-      self.x = int( int_match_x.group(1) )
+      self.x = float( int_match_x.group(1) )
     elif fixed_match_x is not None:
       self.x = float( f'{int( fixed_match_x.group(1), 16 )}.{int( fixed_match_x.group(2), 16)}' )
     else:
       raise Exception( f'Unrecognized syntax for coordinate: {x}' )
     
     if int_match_y is not None:
-      self.y = int( int_match_y.group( 1 ) )
+      self.y = float( int_match_y.group( 1 ) )
     elif fixed_match_y is not None:
       self.y = float( f'{int( fixed_match_y.group(1), 16 )}.{int( fixed_match_y.group(2), 16)}' )
     else:

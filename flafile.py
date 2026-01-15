@@ -1,7 +1,7 @@
 import zipfile
 import re
 import xml.etree.ElementTree as ET
-from flaedge import ReadFlaEdges, FlaEdge
+from flaedge import ReadFlaEdges, FlaEdge, FlaPoint
 from pathlib import Path
 from typing import List, Tuple
 
@@ -10,10 +10,10 @@ import pdb
 #------------------------------------------------------------------------------------------------
 class FlaMatrix:
   def __init__( self, mat_et : ET = None ) -> None:
-    self.a  : float = float(mat_et.attrib[ 'a' ])  if mat_et is not None and 'a'  in mat_et.attrib.keys() else 0.0
+    self.a  : float = float(mat_et.attrib[ 'a' ])  if mat_et is not None and 'a'  in mat_et.attrib.keys() else 1.0
     self.b  : float = float(mat_et.attrib[ 'b' ])  if mat_et is not None and 'b'  in mat_et.attrib.keys() else 0.0
     self.c  : float = float(mat_et.attrib[ 'c' ])  if mat_et is not None and 'c'  in mat_et.attrib.keys() else 0.0
-    self.d  : float = float(mat_et.attrib[ 'd' ])  if mat_et is not None and 'd'  in mat_et.attrib.keys() else 0.0
+    self.d  : float = float(mat_et.attrib[ 'd' ])  if mat_et is not None and 'd'  in mat_et.attrib.keys() else 1.0
     self.tx : float = float(mat_et.attrib[ 'tx' ]) if mat_et is not None and 'tx' in mat_et.attrib.keys() else 0.0
     self.ty : float = float(mat_et.attrib[ 'ty' ]) if mat_et is not None and 'ty' in mat_et.attrib.keys() else 0.0
 
@@ -123,6 +123,19 @@ class FlaShape(FlaElement):
     self.edges = ReadFlaEdges( shape_et, ns )
 
 #------------------------------------------------------------------------------------------------
+class FlaSymbolInstance(FlaElement):
+  def __init__( self, symbol_et : ET, ns : str ) -> None:
+    self.symbol_name = str( symbol_et.attrib[ 'libraryItemName' ] )
+
+    matrix_et   = symbol_et.find( f'{{{ns}}}matrix' )
+    self.matrix = FlaMatrix( matrix_et.find( f'{{{ns}}}Matrix' ) ) if matrix_et is not None else FlaMatrix()
+
+    transform_pt_et = symbol_et.find( f'{{{ns}}}transformationPoint')
+    pt_et           = transform_pt_et.find( f'{{{ns}}}Point' ) if transform_pt_et is not None else None
+
+    self.center_pt = FlaPoint( pt_et.attrib[ 'x' ] if pt_et is not None and 'x' in pt_et.attrib else '0', pt_et.attrib['y'] if pt_et is not None and 'y' in pt_et.attrib else '0' )
+
+#------------------------------------------------------------------------------------------------
 class FlaMovie:
   class Frame:
     def __init__( self, frame_et : ET, ns : str ) -> None:
@@ -136,6 +149,8 @@ class FlaMovie:
       if elements is not None:
         for element in elements.findall(f'{{{ns}}}DOMShape'):
           self.elements.append( FlaShape( element, ns ) )
+        for element in elements.findall(f'{{{ns}}}DOMSymbolInstance'):
+          self.elements.append( FlaSymbolInstance( element, ns ) )
 
   class Layer:
     def __init__( self, layer_et : ET, ns : str ) -> None:

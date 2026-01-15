@@ -3,8 +3,8 @@ from enum import Enum
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QComboBox, QLabel, QMainWindow, QScrollArea, QLineEdit, QPushButton
 from PyQt6.QtGui import QBrush, QPen, QColor, QPainter, QIntValidator, QPainterPath, QPainterPathStroker, QLinearGradient, QRadialGradient
 from PyQt6.QtCore import QObject, QTimer, pyqtSignal, pyqtSlot, Qt, QPointF
-from flafile import FlaFile, FlaShape, FlaFillStyle, FlaFillStyleSolidColor, FlaFillStyleLinearGradient, FlaFillStyleRadialGradient, FlaStrokeStyle, FlaStrokeStyleSolid
-from flaedge import FlaStraightEdge, FlaEdge, FlaQuadraticEdge, FlaCubicEdge
+from flafile import FlaMovie, FlaFile, FlaSymbol, FlaSymbolInstance, FlaShape, FlaMatrix, FlaFillStyle, FlaFillStyleSolidColor, FlaFillStyleLinearGradient, FlaFillStyleRadialGradient, FlaStrokeStyle, FlaStrokeStyleSolid
+from flaedge import FlaStraightEdge, FlaEdge, FlaQuadraticEdge, FlaCubicEdge, FlaPoint
 
 from typing import List
 
@@ -31,32 +31,45 @@ class FlaSceneWidget( QWidget ):
 
     timeline : FlaMovie.Timeline = self.fla.timelines[ self.scene_id ] if isinstance( self.scene_id, int ) else self.fla.symbols[ self.scene_id ].timeline
 
+    self.DrawTimeline( timeline, FlaMatrix() )
+
+  #------------------------------------------------------------------------------
+  def DrawTimeline( self, timeline : FlaMovie.Timeline, transform : FlaMatrix ):
     for layer in timeline.layers:
       if len( layer.frames ) > 0:
         frame : FlaFile.Frame = layer.frames[ self.frame_idx ]
-        self.DrawFills( frame )
-        self.DrawStrokes( frame )
+
+        for element in frame.elements:
+          if isinstance( element, FlaShape ):
+            shape : FlaShape = element
+            self.DrawFill   ( shape, transform  )
+            self.DrawStrokes( shape, transform )
+          elif isinstance( element, FlaSymbolInstance ):
+            symbol_inst : FlaSymbolInstance = element
+
+            symbol    : FlaSymbol         = self.fla.symbols[ symbol_inst.symbol_name ]
+            timeline  : FlaMovie.Timeline = symbol.timeline
+            transform : FlaMatrix         = symbol_inst.matrix
+    
+            self.DrawTimeline( timeline, transform )
 
   #------------------------------------------------------------------------------
-  def DrawFills( self, frame : FlaFile.Frame ) -> None:
+  def DrawFill( self, shape : FlaShape, transform : FlaMatrix ) -> None:
     painter : QPainter = QPainter( self )
     painter.setPen( Qt.PenStyle.NoPen )
-    for element in frame.elements:
-      if isinstance( element, FlaShape ):
-        shape : FlaShape = element
 
-        if len( shape.fills ) > 0:
-          painter.setBrush( self.MakeBrushForFillStyle( shape.fills[0] ) )
-        else:
-          next
+    if len( shape.fills ) > 0:
+      painter.setBrush( self.MakeBrushForFillStyle( shape.fills[0] ) )
+    else:
+      next
 
-        painter_path = QPainterPath()
-        if len( shape.edges ) > 0:
-            edge : FlaEdge = shape.edges[ 0 ]
-            painter_path.moveTo( edge.pointA[ 0 ] / 20.0, edge.pointA[ 1 ] / 20.0 )
-        for edge in shape.edges:
-          self.DrawEdge( edge, painter_path )
-        painter.drawPath( painter_path )
+    painter_path = QPainterPath()
+    if len( shape.edges ) > 0:
+        edge : FlaEdge = shape.edges[ 0 ]
+        painter_path.moveTo( edge.pointA[ 0 ] / 20.0, edge.pointA[ 1 ] / 20.0 )
+    for edge in shape.edges:
+      self.DrawEdge( edge, painter_path )
+    painter.drawPath( painter_path )
 
   #------------------------------------------------------------------------------
   def MakeBrushForFillStyle( self, fill : FlaFillStyle ) -> QBrush:
@@ -77,26 +90,22 @@ class FlaSceneWidget( QWidget ):
     return Qt.BrushStyle.NoBrush
 
   #------------------------------------------------------------------------------
-  def DrawStrokes( self, frame : FlaFile.Frame ) -> None:
+  def DrawStrokes( self, shape : FlaShape, transform : FlaMatrix ) -> None:
     painter : QPainter = QPainter( self )
     painter.setBrush( Qt.BrushStyle.NoBrush )
 
-    for element in frame.elements:
-      if isinstance( element, FlaShape ):
-        shape : FlaShape = element
+    for edge in shape.edges:
+      painter_path = QPainterPath()
+      painter_path.moveTo( edge.pointA[ 0 ] / 20.0, edge.pointA[ 1 ] / 20.0 )
 
-        for edge in shape.edges:
-          painter_path = QPainterPath()
-          painter_path.moveTo( edge.pointA[ 0 ] / 20.0, edge.pointA[ 1 ] / 20.0 )
+      if edge.strokeStyle != -1:
+        stroke_style = shape.strokes[ edge.strokeStyle - 1 ]
+        painter.setPen( self.MakePenForStrokeStyle( stroke_style ) )
+      else:
+        painter.setPen( self.MakePenForStrokeStyle( ) )
 
-          if edge.strokeStyle != -1:
-           stroke_style = shape.strokes[ edge.strokeStyle - 1 ]
-           painter.setPen( self.MakePenForStrokeStyle( stroke_style ) )
-          else:
-           painter.setPen( self.MakePenForStrokeStyle( ) )
-
-          self.DrawEdge( edge, painter_path )
-          painter.drawPath( painter_path )
+      self.DrawEdge( edge, painter_path )
+      painter.drawPath( painter_path )
 
   #------------------------------------------------------------------------------
   def DrawEdge( self, edge : FlaEdge, painter_path : QPainterPath ) -> None:
