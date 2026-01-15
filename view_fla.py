@@ -16,7 +16,7 @@ class FlaSceneWidget( QWidget ):
     super().__init__()
 
     self.fla = fla
-    self.scene_idx = 0
+    self.scene_id = 0
     self.frame_idx = 0
 
     self.setFixedSize( fla.width, fla.height )
@@ -27,7 +27,11 @@ class FlaSceneWidget( QWidget ):
     painter.setRenderHint( QPainter.RenderHint.Antialiasing )
     painter.fillRect( self.rect(), QColor( self.fla.backgroundColor ) )
 
-    for layer in self.fla.timelines[ self.scene_idx ].layers:
+    scene_count : int = len( self.fla.timelines )
+
+    timeline : FlaMovie.Timeline = self.fla.timelines[ self.scene_id ] if isinstance( self.scene_id, int ) else self.fla.symbols[ self.scene_id ].timeline
+
+    for layer in timeline.layers:
       if len( layer.frames ) > 0:
         frame : FlaFile.Frame = layer.frames[ self.frame_idx ]
         self.DrawFills( frame )
@@ -298,6 +302,8 @@ class QtFlaWindow( QMainWindow ):
 
     for timeline in fla.timelines:
       self.scene_select_combo.addItem( timeline.name )
+    for symbol_name, symbol in fla.symbols.items():
+      self.scene_select_combo.addItem( symbol_name )
 
     self.transport_model : FlaTransportModel = FlaTransportModel( fla.frameRate, fla.timelines[ 0 ] )
 
@@ -323,9 +329,15 @@ class QtFlaWindow( QMainWindow ):
     self.transport_model.frameChanged.connect( self.onFrameChanged )
 
   def sceneIndexChanged( self, value ) -> None:
-    self.scene.scene_idx = value
     self.scene.frame_idx = 0
-    self.transport_model.setTimeline( self.fla.timelines[ value ] )
+    scene_count = len( self.fla.timelines )
+
+    if value < scene_count:
+      self.scene.scene_id = value
+      self.transport_model.setTimeline( self.fla.timelines[ value ] )
+    else: # if it's not a scene, it must be a symbol
+      self.scene.scene_id = self.scene_select_combo.itemText( value )
+      self.transport_model.setTimeline( self.fla.symbols[ self.scene.scene_id ].timeline )
     self.scene.repaint()
 
   def onFrameChanged( self, value ) -> None:

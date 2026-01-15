@@ -123,13 +123,7 @@ class FlaShape(FlaElement):
     self.edges = ReadFlaEdges( shape_et, ns )
 
 #------------------------------------------------------------------------------------------------
-class FlaFile:
-  class PlayOptions:
-    def __init__( self, fla_doc : ET ) -> None:
-      self.playLoop         : bool = bool( fla_doc.attrib[ 'playOptionsPlayLoop' ] )
-      self.playPages        : bool = bool( fla_doc.attrib[ 'playOptionsPlayPages' ] )
-      self.playFrameActions : bool = bool( fla_doc.attrib[ 'playOptionsPlayFrameActions' ] )
-
+class FlaMovie:
   class Frame:
     def __init__( self, frame_et : ET, ns : str ) -> None:
       self.index   : int = int( frame_et.attrib[ 'index' ] )
@@ -147,15 +141,15 @@ class FlaFile:
     def __init__( self, layer_et : ET, ns : str ) -> None:
       self.name       : str  = layer_et.attrib[ 'name' ]
       self.color      : str  = layer_et.attrib[ 'color' ]
-      self.current    : bool = bool( layer_et.attrib[ 'current' ] )
-      self.isSelected : bool = bool( layer_et.attrib[ 'isSelected' ] )
+      self.current    : bool = bool( layer_et.attrib[ 'current' ] ) if 'current' in layer_et.attrib else False
+      self.isSelected : bool = bool( layer_et.attrib[ 'isSelected' ] ) if 'isSelected' in layer_et.attrib else False
       self.autoNamed  : bool = bool( layer_et.attrib[ 'autoNamed' ] ) if 'autoNamed' in layer_et.attrib else True
-      self.frames     : List[ FlaFile.Frame ] = []
+      self.frames     : List[ FlaMovie.Frame ] = []
 
       frames = layer_et.find( f'{{{ns}}}frames' )
       if frames is not None:
         for frame in frames:
-          self.frames.append( FlaFile.Frame( frame, ns ) )
+          self.frames.append( FlaMovie.Frame( frame, ns ) )
 
       self.frames.sort(key=lambda f: f.index)
 
@@ -163,47 +157,77 @@ class FlaFile:
     def __init__( self, timeline_et : ET, ns : str ) -> None:
       self.name              : str  = timeline_et.attrib[ 'name' ]
       self.layerDepthEnabled : bool = bool( timeline_et.attrib[ 'layerDepthEnabled' ] )
-      self.layers            : List[ FlaFile.Layer ] = []
+      self.layers            : List[ FlaMovie.Layer ] = []
 
       layers = timeline_et.find( f'{{{ns}}}layers' )
       if layers is not None:
         for layer in layers:
-          self.layers.append( FlaFile.Layer( layer, ns ) )
+          self.layers.append( FlaMovie.Layer( layer, ns ) )
+
+  def __init__( self, fla_archive : zipfile.ZipFile, file_path : str ):
+    dom_doc_str = fla_archive.read( file_path )
+    self.doc = ET.fromstring( dom_doc_str )
+
+    root_tag = self.doc.tag
+    m = re.search( r'\{(.*)\}(DOMDocument|DOMSymbolItem)', root_tag )
+    self.xml_namespace = m.group(1)
+
+#------------------------------------------------------------------------------------------------
+class FlaFile( FlaMovie ):
+  class PlayOptions:
+    def __init__( self, fla_doc : ET ) -> None:
+      self.playLoop         : bool = bool( fla_doc.attrib[ 'playOptionsPlayLoop' ] )
+      self.playPages        : bool = bool( fla_doc.attrib[ 'playOptionsPlayPages' ] )
+      self.playFrameActions : bool = bool( fla_doc.attrib[ 'playOptionsPlayFrameActions' ] )
 
 
   def __init__( self, path : Path ) -> None:
     with zipfile.ZipFile( path.absolute(), 'r', is_adobe=True ) as fla_archive:
-      dom_doc_str = fla_archive.read( 'DOMDocument.xml' )
-      fla_doc = ET.fromstring( dom_doc_str )
+      super().__init__( fla_archive, 'DOMDocument.xml' )
 
-      root_tag = fla_doc.tag
-      m = re.search( r'\{(.*)\}DOMDocument', root_tag )
-      ns = m.group(1)
+      library_prefix = 'LIBRARY/'
+      symbol_file_list : List[ str ] = \
+        [ f for f in fla_archive.namelist() 
+          if f.startswith( library_prefix ) and len( f ) > len( library_prefix ) 
+        ]
+
+      self.symbols = { symbol_file.removeprefix( library_prefix ).removesuffix('.xml'): 
+                       FlaSymbol( fla_archive, symbol_file ) 
+                       for symbol_file in symbol_file_list }
 
       self.path              : Path  = path
-      self.backgroundColor   : str   = fla_doc.attrib[ 'backgroundColor' ] if 'backgroundColor' in fla_doc.attrib.keys() else '#ffffff'
-      self.width             : int   = int( fla_doc.attrib[ 'width' ] )
-      self.height            : int   = int( fla_doc.attrib[ 'height' ] ) if 'height' in fla_doc.attrib.keys() else self.width
-      self.frameRate         : int   = int( fla_doc.attrib[ 'frameRate' ] )
-      self.currentTimeline   : int   = int( fla_doc.attrib[ 'currentTimeline' ] )
-      self.creatorInfo       : str   = fla_doc.attrib[ 'creatorInfo' ]
-      self.platform          : str   = fla_doc.attrib[ 'platform' ]
-      self.versionInfo       : str   = fla_doc.attrib[ 'versionInfo' ]
-      self.majorVersion      : int   = int( fla_doc.attrib[ 'majorVersion' ] )
-      self.buildNumer        : int   = int( fla_doc.attrib[ 'buildNumber' ] )
-      self.viewAngle3D       : float = float( fla_doc.attrib[ 'viewAngle3D' ] )
-      self.vanishingPoint3DX : float = float( fla_doc.attrib[ 'vanishingPoint3DX' ] ) 
-      self.vanishingPoint3DY : float = float( fla_doc.attrib[ 'vanishingPoint3DY' ] ) if 'vanishingPoint3DY' in fla_doc.attrib.keys() else self.vanishingPoint3DX
-      self.rulerUnitType     : str   = fla_doc.attrib[ 'rulerUnitType' ] if 'rulerUnitType' in fla_doc.attrib.keys() else 'points'
-      self.nextSceneId       : int   = int( fla_doc.attrib[ 'nextSceneIdentifier' ] )
-      self.fileTypeGuid      : str   = fla_doc.attrib[ 'filetypeGUID' ]
-      self.fileGUID          : str   = fla_doc.attrib[ 'fileGUID' ]
+      self.backgroundColor   : str   = self.doc.attrib[ 'backgroundColor' ] if 'backgroundColor' in self.doc.attrib.keys() else '#ffffff'
+      self.width             : int   = int( self.doc.attrib[ 'width' ] )
+      self.height            : int   = int( self.doc.attrib[ 'height' ] ) if 'height' in self.doc.attrib.keys() else self.width
+      self.frameRate         : int   = int( self.doc.attrib[ 'frameRate' ] )
+      self.currentTimeline   : int   = int( self.doc.attrib[ 'currentTimeline' ] )
+      self.creatorInfo       : str   = self.doc.attrib[ 'creatorInfo' ]
+      self.platform          : str   = self.doc.attrib[ 'platform' ]
+      self.versionInfo       : str   = self.doc.attrib[ 'versionInfo' ]
+      self.majorVersion      : int   = int( self.doc.attrib[ 'majorVersion' ] )
+      self.buildNumer        : int   = int( self.doc.attrib[ 'buildNumber' ] )
+      self.viewAngle3D       : float = float( self.doc.attrib[ 'viewAngle3D' ] )
+      self.vanishingPoint3DX : float = float( self.doc.attrib[ 'vanishingPoint3DX' ] ) 
+      self.vanishingPoint3DY : float = float( self.doc.attrib[ 'vanishingPoint3DY' ] ) if 'vanishingPoint3DY' in self.doc.attrib.keys() else self.vanishingPoint3DX
+      self.rulerUnitType     : str   = self.doc.attrib[ 'rulerUnitType' ] if 'rulerUnitType' in self.doc.attrib.keys() else 'points'
+      self.nextSceneId       : int   = int( self.doc.attrib[ 'nextSceneIdentifier' ] )
+      self.fileTypeGuid      : str   = self.doc.attrib[ 'filetypeGUID' ]
+      self.fileGUID          : str   = self.doc.attrib[ 'fileGUID' ]
 
-      self.playOptions : FlaFile.PlayOptions = FlaFile.PlayOptions( fla_doc )
-      
-      self.timelines : List[ FlaFile.Timeline ] = []
-      timelines = fla_doc.find( f'{{{ns}}}timelines' )
+      self.playOptions : FlaFile.PlayOptions = FlaFile.PlayOptions( self.doc )
+
+      self.timelines : List[ FlaMovie.Timeline ] = []
+      timelines = self.doc.find( f'{{{self.xml_namespace}}}timelines' )
 
       if timelines is not None:
         for timeline in timelines:
-          self.timelines.append( FlaFile.Timeline( timeline, ns ) )
+          self.timelines.append( FlaMovie.Timeline( timeline, self.xml_namespace ) )
+
+#------------------------------------------------------------------------------------------------
+class FlaSymbol(FlaMovie):
+  def __init__( self, fla_archive : zipfile.ZipFile, file_path : str ):
+    super().__init__( fla_archive, file_path )
+
+    timeline = self.doc.find( f'{{{ self.xml_namespace }}}timeline' )
+    if timeline is not None:
+      self.timeline = FlaMovie.Timeline( list( timeline )[0], self.xml_namespace )
