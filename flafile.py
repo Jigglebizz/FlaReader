@@ -17,6 +17,16 @@ class FlaMatrix:
     self.tx : float = float(mat_et.attrib[ 'tx' ]) if mat_et is not None and 'tx' in mat_et.attrib.keys() else 0.0
     self.ty : float = float(mat_et.attrib[ 'ty' ]) if mat_et is not None and 'ty' in mat_et.attrib.keys() else 0.0
 
+  # def mul( self, other ):
+
+  #   self.a  = self.a * other.a  + self.b * other.c
+  #   self.b  = self.a * other.b  + self.b * other.data
+  #   self.tx = self.a * other.tx + self.b * other.ty + self.tx
+
+  #   self.c  = self.c * other.a  + self.d * other.c
+  #   self.d  = self.c * other.b  + self.d * other.d
+  #   self.ty = self.c * other.tx + self.d * other.ty + self.ty
+
 #------------------------------------------------------------------------------------------------
 class FlaFillStyle:
   def __init__( self, fill_et : ET ) -> None:
