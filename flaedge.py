@@ -44,11 +44,9 @@ class FlaQuadraticEdge(FlaEdge):
 
 #------------------------------------------------------------------------------------------------
 class FlaPoint:
-  point_regex : str = '((\\-?\\d+(\\.\\d+)?)|(#[0-9A-F]+\\.[0-9A-F]+))'
-
   def __init__( self, x : str, y : str ):
-    int_regex      = r'^(\-?\d+)'
-    fixed_pt_regex = r'^#([0-9A-F]+)\.([0-9A-F]+)'
+    int_regex      = r'^(\-?\d+)(S\d+)?$'
+    fixed_pt_regex = r'^#([0-9A-F]+)\.([0-9A-F]+)$'
 
     int_match_x   = re.search( int_regex, x )
     fixed_match_x = re.search( fixed_pt_regex, x )
@@ -84,24 +82,42 @@ class FlaEdgeDescription:
     self.fill_style_idx   = fill_style_idx
     self.stroke_style_idx = stroke_style_idx
 
-    straight_re  = re.compile(f'{ FlaPoint.point_regex }\s+{ FlaPoint.point_regex }(\||/){ FlaPoint.point_regex }\s+{ FlaPoint.point_regex }')
-    quadratic_re = re.compile(f'{ FlaPoint.point_regex }\s+{ FlaPoint.point_regex }\[{ FlaPoint.point_regex }\s+{ FlaPoint.point_regex }\s+{ FlaPoint.point_regex }\s+{ FlaPoint.point_regex }')
+    straight_desc  = '|' in syntax or '/' in syntax
+    quadratic_desc = '[' in syntax
 
-    straight_match  = re.search( straight_re,  syntax )
-    quadratic_match = re.search( quadratic_re, syntax )
+    if straight_desc:
+      syntax = syntax.replace( '|', ' ' )
+      syntax = syntax.replace( '/', ' ' )
 
-    if straight_match is not None:
-      self.type  = FlaEdgeDescription.Type.Straight
-      self.start = FlaPoint( straight_match.group(1), straight_match.group(5) )
-      self.end   = FlaPoint( straight_match.group(10), straight_match.group(14) )
-      self.id    = f'{straight_match.group(1)}{straight_match.group(5)}{straight_match.group(9)}{straight_match.group(13)}'
+      nums : str = syntax.split( ' ' )
 
-    elif quadratic_match is not None:
-      self.type          = FlaEdgeDescription.Type.Quadratic
-      self.start         = FlaPoint( quadratic_match.group(1),  quadratic_match.group(5) )
-      self.end           = FlaPoint( quadratic_match.group(17), quadratic_match.group(21) )
-      self.control_point = FlaPoint( quadratic_match.group(9),  quadratic_match.group(13) )
-      self.id            = f'{quadratic_match.group(1)}{quadratic_match.group(5)}{quadratic_match.group(9)}{quadratic_match.group(13)}{quadratic_match.group(17)}{quadratic_match.group(21)}'
+      if len( nums ) == 4:
+
+        nums_itr                             = iter( nums )
+        points   : List[ Tuple[ str, str ] ] = list( zip( nums_itr, nums_itr ) )
+  
+        self.type  = FlaEdgeDescription.Type.Straight
+        self.start = FlaPoint( points[ 0 ][ 0 ], points[ 0 ][ 1 ] )
+        self.end   = FlaPoint( points[ 1 ][ 0 ], points[ 1 ][ 1 ] )
+      else:
+        raise Exception( f'Unrecognized edge description syntax: {syntax}' )
+
+    elif quadratic_desc:
+      syntax = syntax.replace( '[', ' ' )
+
+      nums : str = syntax.split( ' ' )
+
+      if len( nums ) == 6:
+        
+        nums_itr                           = iter( nums )
+        points : List[ Tuple[ str, str ] ] = list( zip( nums_itr, nums_itr ) )
+
+        self.type          = FlaEdgeDescription.Type.Quadratic
+        self.start         = FlaPoint( points[ 0 ][ 0 ], points[ 0 ][ 1 ])
+        self.end           = FlaPoint( points[ 2 ][ 0 ], points[ 2 ][ 1 ] )
+        self.control_point = FlaPoint( points[ 1 ][ 0 ], points[ 1 ][ 1 ] )
+      else:
+        raise Exception( f'Unrecognized edge description syntax: {syntax}')
     else:
       pdb.set_trace()
       raise Exception( f'Unrecognized edge description syntax: {syntax}' )
