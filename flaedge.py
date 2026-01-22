@@ -7,27 +7,28 @@ import pdb
 
 #------------------------------------------------------------------------------------------------
 class FlaEdge:
-  def __init__( self, fill_style : int, stroke_style : int, point_a : Tuple[ float, float ], point_b : Tuple[ float, float ] ):
-    self.fillStyle1  = fill_style
+  def __init__( self, fill_style_1 : int, fill_style_0 : int, stroke_style : int, point_a : Tuple[ float, float ], point_b : Tuple[ float, float ] ):
+    self.fillStyle1  = fill_style_1
+    self.fillStyle0  = fill_style_0
     self.strokeStyle = stroke_style
     self.pointA = point_a
     self.pointB = point_b
 
 #------------------------------------------------------------------------------------------------
 class FlaStraightEdge(FlaEdge):
-  def __init__( self, fill_style: int, stroke_style : int, point_a : Tuple[ float, float ], point_b : Tuple[ float, float ] ) -> None:
-    super().__init__( fill_style, stroke_style, point_a, point_b )
+  def __init__( self, fill_style_1: int, fill_style_0 : int, stroke_style : int, point_a : Tuple[ float, float ], point_b : Tuple[ float, float ] ) -> None:
+    super().__init__( fill_style_1, fill_style_0, stroke_style, point_a, point_b )
 
 #------------------------------------------------------------------------------------------------
 class FlaCubicEdge(FlaEdge):
-  def __init__( self, fill_style: int, stroke_style: int, 
+  def __init__( self, fill_style_1: int, fill_style_0 : int, stroke_style: int, 
                       point_a : Tuple[ float, float ], 
                       point_b : Tuple[ float, float ], 
                       control_point_a1 : Tuple[ float, float ],
                       control_point_a2 : Tuple[ float, float ], 
                       control_point_b1 : Tuple[ float, float ], 
                       control_point_b2 : Tuple[ float, float ] ):
-    super().__init__( fill_style, stroke_style, point_a, point_b )
+    super().__init__( fill_style_1, fill_style_0, stroke_style, point_a, point_b )
     self.control_point_a1 = control_point_a1
     self.control_point_a2 = control_point_a2
     self.control_point_b1 = control_point_b1
@@ -35,11 +36,11 @@ class FlaCubicEdge(FlaEdge):
 
 #------------------------------------------------------------------------------------------------
 class FlaQuadraticEdge(FlaEdge):
-  def __init__( self, fill_style: int, stroke_style: int,
+  def __init__( self, fill_style_1: int, fill_style_0 : int, stroke_style: int,
                       point_a : Tuple[ float, float ],
                       point_b : Tuple[ float, float ], 
                       control_point : Tuple[ float, float ] ):
-    super().__init__( fill_style, stroke_style, point_a, point_b )
+    super().__init__( fill_style_1, fill_style_0, stroke_style, point_a, point_b )
     self.control_point = control_point
 
 #------------------------------------------------------------------------------------------------
@@ -78,8 +79,9 @@ class FlaEdgeDescription:
   ]
   )
 
-  def __init__( self, syntax : str, fill_style_idx : int, stroke_style_idx : int ):
-    self.fill_style_idx   = fill_style_idx
+  def __init__( self, syntax : str, fill_style_1_idx : int, fill_style_0_idx : int, stroke_style_idx : int ):
+    self.fill_style_1_idx = fill_style_1_idx
+    self.fill_style_0_idx = fill_style_0_idx
     self.stroke_style_idx = stroke_style_idx
 
     straight_desc  = '|' in syntax or '/' in syntax
@@ -199,11 +201,12 @@ def ReadFlaEdges( shape_et : ET, ns : str ) -> List[ FlaEdge ]:
 
     for edge in edges.findall( f'{{{ns}}}Edge' ):
       if 'edges' in edge.attrib:
-        fill_style_idx   : int = int(edge.attrib['fillStyle1'])  if 'fillStyle1'  in edge.attrib else -1
+        fill_style_1_idx   : int = int(edge.attrib['fillStyle1'])  if 'fillStyle1'  in edge.attrib else -1
+        fill_style_0_idx   : int = int(edge.attrib['fillStyle0'])  if 'fillStyle0'  in edge.attrib else -1
         stroke_style_idx : int = int(edge.attrib['strokeStyle']) if 'strokeStyle' in edge.attrib else -1
 
         edge_desc_syntaxes = edge.attrib['edges'].split('!')
-        edge_descs.extend( [ FlaEdgeDescription( e, fill_style_idx, stroke_style_idx ) for e in edge_desc_syntaxes if len(e) > 0 ] )
+        edge_descs.extend( [ FlaEdgeDescription( e, fill_style_1_idx, fill_style_0_idx, stroke_style_idx ) for e in edge_desc_syntaxes if len(e) > 0 ] )
       #elif 'cubics' in edge.attrib:
       #  cubics_descs.append( FlaEdgeCubicDescription( edge.attrib[ 'cubics' ] ) )
 
@@ -220,13 +223,15 @@ def ReadFlaEdges( shape_et : ET, ns : str ) -> List[ FlaEdge ]:
       #if matching_cubic is None:
         edge_desc = edge_descs[0]
         if edge_desc.type == FlaEdgeDescription.Type.Straight:
-          fla_edges.append( FlaStraightEdge( edge_desc.fill_style_idx, 
+          fla_edges.append( FlaStraightEdge( edge_desc.fill_style_1_idx, 
+                                             edge_desc.fill_style_0_idx,
                                              edge_desc.stroke_style_idx, 
                                            ( edge_desc.start.x, edge_desc.start.y ),
                                            ( edge_desc.end.x,   edge_desc.end.y   ) ) )
           del edge_descs[0]
         elif edge_desc.type == FlaEdgeDescription.Type.Quadratic:
-          fla_edges.append( FlaQuadraticEdge( edge_desc.fill_style_idx,
+          fla_edges.append( FlaQuadraticEdge( edge_desc.fill_style_1_idx,
+                                              edge_desc.fill_style_0_idx,
                                               edge_desc.stroke_style_idx,
                                             ( edge_desc.start.x, edge_desc.start.y ),
                                             ( edge_desc.end.x,   edge_desc.end.y ),

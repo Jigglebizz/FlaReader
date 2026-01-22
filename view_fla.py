@@ -38,14 +38,14 @@ class FlaSceneWidget( QWidget ):
 
   #------------------------------------------------------------------------------
   def DrawTimeline( self, timeline : FlaMovie.Timeline, transform : QTransform ):
-    for layer in timeline.layers:
-      if len( layer.frames ) > 0:
-        frame : FlaFile.Frame = layer.frames[ self.frame_idx ]
+    for layer in reversed( timeline.layers ):
+      if layer.visible and len( layer.frames ) > 0:
+        frame : FlaFile.Frame = layer.GetResultingFrame( self.frame_idx )
 
         for element in frame.elements:
           if isinstance( element, FlaShape ):
             shape : FlaShape = element
-            self.DrawFill   ( shape, transform  )
+            #self.DrawFill   ( shape, transform  )
             self.DrawStrokes( shape, transform )
           elif isinstance( element, FlaSymbolInstance ):
             symbol_inst : FlaSymbolInstance = element

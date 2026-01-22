@@ -1,11 +1,20 @@
 import zipfile
 import re
+import copy
 import xml.etree.ElementTree as ET
+import math
 from flaedge import ReadFlaEdges, FlaEdge, FlaPoint
 from pathlib import Path
 from typing import List, Tuple
+from enum import Enum
 
 import pdb
+
+def StrParseBool( string : str ) -> bool:
+  return string == 'true' or string == 'True'
+
+def Lerp( a : float, b : float, t : float ) -> float:
+  return a + ( ( b - a ) * t )
 
 #------------------------------------------------------------------------------------------------
 class FlaMatrix:
@@ -17,15 +26,34 @@ class FlaMatrix:
     self.tx : float = float(mat_et.attrib[ 'tx' ]) if mat_et is not None and 'tx' in mat_et.attrib.keys() else 0.0
     self.ty : float = float(mat_et.attrib[ 'ty' ]) if mat_et is not None and 'ty' in mat_et.attrib.keys() else 0.0
 
-  # def mul( self, other ):
+  def tweenTo( self, other_mat, amt : float ) -> object:
+    res_mat : FlaMatrix = FlaMatrix()
 
-  #   self.a  = self.a * other.a  + self.b * other.c
-  #   self.b  = self.a * other.b  + self.b * other.data
-  #   self.tx = self.a * other.tx + self.b * other.ty + self.tx
+    res_mat.a  = Lerp( self.a,  other_mat.a,  amt )
+    res_mat.b  = Lerp( self.b,  other_mat.b,  amt )
+    res_mat.c  = Lerp( self.c,  other_mat.c,  amt )
+    res_mat.d  = Lerp( self.d,  other_mat.d,  amt )
+    res_mat.tx = Lerp( self.tx, other_mat.tx, amt )
+    res_mat.ty = Lerp( self.ty, other_mat.ty, amt )
 
-  #   self.c  = self.c * other.a  + self.d * other.c
-  #   self.d  = self.c * other.b  + self.d * other.d
-  #   self.ty = self.c * other.tx + self.d * other.ty + self.ty
+    return res_mat
+
+  def scale( self ) -> FlaPoint:
+    theta = math.asin( self.b )
+    sx    = cos( theta ) / self.a
+    sy    = cos( theta ) / self.d
+    
+    return FlaPoint( str(sx), str(sy) )
+
+  def rotation( self ) -> float:
+    theta = math.asin( self.b )
+    sx    = cos( theta ) / self.a
+    a_norm = self.a / scale.x
+    return math.atan2( c, a_norm )
+
+
+  def __repr__( self ) -> str:
+    return f'| {self.a:0.2f} {self.b:0.2f} {self.tx:0.2f} |\n| {self.c:0.2f} {self.d:0.2f} {self.ty:0.2f} |'
 
 #------------------------------------------------------------------------------------------------
 class FlaFillStyle:
@@ -146,14 +174,39 @@ class FlaSymbolInstance(FlaElement):
     self.center_pt = FlaPoint( pt_et.attrib[ 'x' ] if pt_et is not None and 'x' in pt_et.attrib else '0', pt_et.attrib['y'] if pt_et is not None and 'y' in pt_et.attrib else '0' )
 
 #------------------------------------------------------------------------------------------------
+TweenType = Enum(
+  'TweenType',
+  [
+    'NoTween',
+    'Classic',
+    'Motion'
+  ]
+  )
+
+#------------------------------------------------------------------------------------------------
 class FlaMovie:
   class Frame:
-    def __init__( self, frame_et : ET, ns : str ) -> None:
+    def __init__( self, frame_et : ET = None, ns : str = None, frame_a = None, frame_b = None, frame_idx : int = None ) -> None:
+      if ET is not None and ns is not None:
+        self._initFromXml( frame_et, ns )
+      elif frame_a is not None and frame_b is not None and frame_idx is not None:
+        self._initFromTween( frame_a, frame_b, frame_idx )
+
+    def _initFromXml( self, frame_et : ET, ns : str ) -> None:
       self.index   : int = int( frame_et.attrib[ 'index' ] )
 
-      # todo: look up actual key mode as an enum
-      self.keyMode : int = int( frame_et.attrib[ 'keyMode' ] )
+      ## todo: key mode seems to be a set of flags?
+      #self.keyMode : int = int( frame_et.attrib[ 'keyMode' ] )
 
+      if 'tweenType' in frame_et.attrib:
+        if frame_et.attrib[ 'tweenType' ] == 'motion':
+          self.tween_mode = TweenType.Classic
+        else:
+          raise Exception( f'unknown tween mode { frame_et.attrib[ "tweenMode" ] }' )
+      else:
+        self.tween_mode = TweenType.NoTween
+
+      self.duration = frame_et.attrib[ 'duration' ] if 'duration' in frame_et.attrib else 1
       self.elements : List[ FlaElement ] = []
       elements = frame_et.find( f'{{{ns}}}elements' )
       if elements is not None:
@@ -162,13 +215,37 @@ class FlaMovie:
         for element in elements.findall(f'{{{ns}}}DOMSymbolInstance'):
           self.elements.append( FlaSymbolInstance( element, ns ) )
 
+    def _initFromTween( self, frame_a, frame_b, frame_idx : int ) -> None:
+      self.index      = frame_idx
+      self.tween_mode = frame_a.tween_mode
+      self.duration   = 1
+      if frame_b is not None and self.tween_mode == TweenType.Classic:
+        if len( frame_a.elements ) == 1 and len( frame_b.elements ) == 1 and \
+           isinstance( frame_a.elements[0], FlaSymbolInstance ) and \
+           isinstance( frame_b.elements[0], FlaSymbolInstance ):
+
+          sym_inst_a : FlaSymbolInstance = frame_a.elements[0]
+          sym_inst_b : FlaSymbolInstance = frame_b.elements[0]
+
+          if sym_inst_a.symbol_name == sym_inst_b.symbol_name:
+            tween_sym = copy.deepcopy( sym_inst_a )
+
+            tween_amt : float = ( frame_idx - frame_a.index ) / ( frame_b.index - frame_a.index )
+            tween_sym.matrix = sym_inst_a.matrix.tweenTo( sym_inst_b.matrix, tween_amt )
+
+            self.elements = [ tween_sym ]
+
+      if self.elements is None:
+        self.elements = frame_a.elements
+
   class Layer:
     def __init__( self, layer_et : ET, ns : str ) -> None:
       self.name       : str  = layer_et.attrib[ 'name' ]
       self.color      : str  = layer_et.attrib[ 'color' ]
-      self.current    : bool = bool( layer_et.attrib[ 'current' ] ) if 'current' in layer_et.attrib else False
-      self.isSelected : bool = bool( layer_et.attrib[ 'isSelected' ] ) if 'isSelected' in layer_et.attrib else False
-      self.autoNamed  : bool = bool( layer_et.attrib[ 'autoNamed' ] ) if 'autoNamed' in layer_et.attrib else True
+      self.current    : bool = StrParseBool( layer_et.attrib[ 'current' ] ) if 'current' in layer_et.attrib else False
+      self.isSelected : bool = StrParseBool( layer_et.attrib[ 'isSelected' ] ) if 'isSelected' in layer_et.attrib else False
+      self.autoNamed  : bool = StrParseBool( layer_et.attrib[ 'autoNamed' ] ) if 'autoNamed' in layer_et.attrib else True
+      self.visible    : bool = StrParseBool( layer_et.attrib[ 'visible' ] ) if 'visible' in layer_et.attrib else True
       self.frames     : List[ FlaMovie.Frame ] = []
 
       frames = layer_et.find( f'{{{ns}}}frames' )
@@ -178,10 +255,25 @@ class FlaMovie:
 
       self.frames.sort(key=lambda f: f.index)
 
+    def GetResultingFrame( self, idx : int ) -> object:
+      current_keyframe = None
+      next_frame       = None
+      for frame in self.frames:
+        if frame.index <= idx:
+          current_keyframe = frame
+        else:
+          next_frame = frame
+          break
+
+      if current_keyframe is not None and next_frame is not None and current_keyframe.tween_mode != TweenType.NoTween:
+        return FlaMovie.Frame( frame_a=current_keyframe, frame_b=next_frame, frame_idx=idx )
+      
+      return current_keyframe
+
   class Timeline:
     def __init__( self, timeline_et : ET, ns : str ) -> None:
       self.name              : str  = timeline_et.attrib[ 'name' ]
-      self.layerDepthEnabled : bool = bool( timeline_et.attrib[ 'layerDepthEnabled' ] )
+      self.layerDepthEnabled : bool = StrParseBool( timeline_et.attrib[ 'layerDepthEnabled' ] ) if 'layerDepthEnabled' in timeline_et.attrib else False
       self.layers            : List[ FlaMovie.Layer ] = []
 
       layers = timeline_et.find( f'{{{ns}}}layers' )
@@ -201,9 +293,9 @@ class FlaMovie:
 class FlaFile( FlaMovie ):
   class PlayOptions:
     def __init__( self, fla_doc : ET ) -> None:
-      self.playLoop         : bool = bool( fla_doc.attrib[ 'playOptionsPlayLoop' ] )
-      self.playPages        : bool = bool( fla_doc.attrib[ 'playOptionsPlayPages' ] )
-      self.playFrameActions : bool = bool( fla_doc.attrib[ 'playOptionsPlayFrameActions' ] )
+      self.playLoop         : bool = StrParseBool( fla_doc.attrib[ 'playOptionsPlayLoop' ] )
+      self.playPages        : bool = StrParseBool( fla_doc.attrib[ 'playOptionsPlayPages' ] )
+      self.playFrameActions : bool = StrParseBool( fla_doc.attrib[ 'playOptionsPlayFrameActions' ] )
 
 
   def __init__( self, path : Path ) -> None:
@@ -250,8 +342,29 @@ class FlaFile( FlaMovie ):
 
 #------------------------------------------------------------------------------------------------
 class FlaSymbol(FlaMovie):
+  class Slice:
+    def __init__( self, left : float, right : float, top : float, bottom : float ) -> None:
+      self.left   = left
+      self.right  = right
+      self.top    = top
+      self.bottom = bottom
+
   def __init__( self, fla_archive : zipfile.ZipFile, file_path : str ):
     super().__init__( fla_archive, file_path )
+
+    self.slice = None
+
+    slice_attribs = [
+      'scaleGridLeft',
+      'scaleGridRight',
+      'scaleGridTop',
+      'scaleGridBottom'
+    ]
+    slice_attribs_set = set( slice_attribs )
+
+    if slice_attribs_set.intersection( set( self.doc.attrib ) ) == slice_attribs_set:
+      slice_attrib_floats = [ float( self.doc.attrib[ attrib_name ] ) for attrib_name in slice_attribs ]
+      self.slice = FlaSymbol.Slice( *slice_attrib_floats )
 
     timeline = self.doc.find( f'{{{ self.xml_namespace }}}timeline' )
     if timeline is not None:

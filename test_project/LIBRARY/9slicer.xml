@@ -1,0 +1,70 @@
+<DOMSymbolItem xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://ns.adobe.com/xfl/2008/" name="9slicer" itemID="696d5b97-00000008" linkageExportForAS="true" linkageClassName="_9slicer" scaleGridLeft="-92" scaleGridRight="93" scaleGridTop="-84.95" scaleGridBottom="84.05" lastModified="1768781765">
+  <timeline>
+    <DOMTimeline name="9slicer">
+      <layers>
+        <DOMLayer name="Layer_1" color="#00FFFF" current="true" isSelected="true">
+          <frames>
+            <DOMFrame index="0" keyMode="9728">
+              <elements>
+                <DOMShape>
+                  <fills>
+                    <FillStyle index="1">
+                      <SolidColor color="#33FF00"/>
+                    </FillStyle>
+                    <FillStyle index="2">
+                      <SolidColor color="#FF0000"/>
+                    </FillStyle>
+                    <FillStyle index="3">
+                      <SolidColor color="#0066CC"/>
+                    </FillStyle>
+                    <FillStyle index="4">
+                      <SolidColor color="#FFFF00"/>
+                    </FillStyle>
+                    <FillStyle index="5">
+                      <SolidColor color="#18180C"/>
+                    </FillStyle>
+                  </fills>
+                  <strokes>
+                    <StrokeStyle index="1">
+                      <SolidStroke scaleMode="normal">
+                        <fill>
+                          <SolidColor/>
+                        </fill>
+                      </SolidStroke>
+                    </StrokeStyle>
+                  </strokes>
+                  <edges>
+                    <Edge fillStyle0="1" fillStyle1="2" strokeStyle="1" edges="!2081 -1920|2211 -2110"/>
+                    <Edge fillStyle0="2" fillStyle1="4" strokeStyle="1" edges="!2081 1941|2211 2111"/>
+                    <Edge fillStyle0="2" fillStyle1="5" strokeStyle="1" edges="!2081 -1920|2081 1941"/>
+                    <Edge fillStyle1="2" strokeStyle="1" edges="!2211 -2110|2211 2111"/>
+                    <Edge fillStyle0="3" fillStyle1="1" strokeStyle="1" edges="!-2050 -1920|-2210 -2110"/>
+                    <Edge fillStyle0="4" fillStyle1="3" strokeStyle="1" edges="!-2050 1941|-2210 2111"/>
+                    <Edge fillStyle0="3" fillStyle1="5" strokeStyle="1" edges="!-2050 1941|-2050 -1920"/>
+                    <Edge fillStyle1="3" strokeStyle="1" edges="!-2210 2111|-2210 -2110"/>
+                    <Edge fillStyle0="4" fillStyle1="5" strokeStyle="1" edges="!2081 1941[#BC.2D #414.D1 -2050 1941"/>
+                    <Edge fillStyle1="1" strokeStyle="1" edges="!-2210 -2110|2211 -2110"/>
+                    <Edge fillStyle0="1" fillStyle1="5" strokeStyle="1" edges="!-2050 -1920|2081 -1920"/>
+                    <Edge fillStyle1="4" strokeStyle="1" edges="!2211 2111|-2210 2111"/>
+                    <Edge cubics="!2081 -1920(;2081,-1920 2211,-2110 2211,-2110q2081 -1920 2211 -2110);"/>
+                    <Edge cubics="!2081 1941(;2081,1941 2211,2111 2211,2111q2081 1941 2211 2111);"/>
+                    <Edge cubics="!2211 -2110(;2211,-2110 2211,2111 2211,2111q2211 -2110 2211 2111);"/>
+                    <Edge cubics="!2081 -1920(;2081,-1920 2081,1941 2081,1941q2081 -1920 2081 1941);"/>
+                    <Edge cubics="!-2050 -1920(;-2050,-1920 -2210,-2110 -2210,-2110q-2050 -1920 -2210 -2110);"/>
+                    <Edge cubics="!-2050 1941(;-2050,1941 -2210,2111 -2210,2111q-2050 1941 -2210 2111);"/>
+                    <Edge cubics="!-2210 2111(;-2210,2111 -2210,-2110 -2210,-2110q-2210 2111 -2210 -2110);"/>
+                    <Edge cubics="!-2050 1941(;-2050,1941 -2050,-1920 -2050,-1920q-2050 1941 -2050 -1920);"/>
+                    <Edge cubics="!2211 2111(;2211,2111 -2210,2111 -2210,2111q2211 2111 -2210 2111);"/>
+                    <Edge cubics="!-2050 -1920(;-2050,-1920 2081,-1920 2081,-1920q-2050 -1920 2081 -1920);"/>
+                    <Edge cubics="!-2210 -2110(;-2210,-2110 2211,-2110 2211,-2110q-2210 -2110 2211 -2110);"/>
+                    <Edge cubics="!2081 1941(;819,1344 -558,1344 -2050,1941q2081 1941Q188 1045q-2050 1941);"/>
+                  </edges>
+                </DOMShape>
+              </elements>
+            </DOMFrame>
+          </frames>
+        </DOMLayer>
+      </layers>
+    </DOMTimeline>
+  </timeline>
+</DOMSymbolItem>
